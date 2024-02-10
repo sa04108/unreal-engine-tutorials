@@ -28,7 +28,7 @@ PhysicsHandle->GrabComponentAtLocationWithRotation(
 - UPrimitiveComponent
   - USceneComponent의 하위 클래스로 기하학적 형태를 가질 수 있고 충돌 처리가 가능한 컴포넌트입니다.
   - USceneComponent는 다른 컴포넌트에 부착될 수는 있지만 렌더링이나 충돌 처리가 불가능합니다.
-  - AActor::GetRootComponent()의 반환값는 USceneComponent* 이므로 UPrimitiveComponent로 사용 시 Cast(dynamic cast)가 필요합니다.
+  - AActor::GetRootComponent()의 반환값은 USceneComponent* 이므로 UPrimitiveComponent로 사용 시 Cast(dynamic cast)가 필요합니다.
 ```cpp
 UPrimitiveComponent* Component = Cast<UPrimitiveComponent>(Target->GetRootComponent());
 if (Component != nullptr)
@@ -39,7 +39,7 @@ Target->AttachToComponent(this, FAttachmentTransformRules::KeepWorldTransform);
 ```
 
 - AActor::GetOverlappingActors()
-  - overlap중인 모든 액터들을 TArray<Actor*> 형태로 반환합니다.
+  - overlap중인 모든 액터들을 TArray 형태로 반환합니다.
   - 충돌에는 ignore, overlap, block 총 세 가지 옵션이 있으며 이 중 overlap은 말 그대로 중첩상태를 말합니다.
 ```cpp
 AActor *UTriggerComponent::GetAcceptableActor() const
@@ -147,7 +147,7 @@ void ABasePawn::RotateTurret(FVector LookAtTarget)
 ```
 
 - APlayerController::GetHitResultUnderCursor()
-  - 마우스 커서 위치로 Line Trace한 다음 결과를 가져옵니다.
+  - 마우스 커서 위치로 Line Trace한 다음 결과를 FHitResult 객체로 가져옵니다.
 ```cpp
 // Called every frame
 void ATank::Tick(float DeltaTime)
@@ -188,7 +188,7 @@ void ATank::Turn(float Value)
 ### Projectile
 - UProjectileMovementComponent
   - UE의 physics와 별개로 작동하는 발사체 처리 컴포넌트
-  - 일반적으로 회전값이 고정되어 있으며 목표지점을 향해 날아가게끔 하며 중력이 적용됩니다.
+  - 일반적으로 회전값이 고정되어 있고 목표지점을 향해 날아가게끔 하며 중력이 적용됩니다.
   - 발사체의 움직임과 관련한 다양한 옵션을 제공합니다.
 ```cpp
 ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("Projectile Movement"));
@@ -235,7 +235,7 @@ void AProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimi
 - UGameplayStatics::PlaySoundAtLocation()
   - USoundBase 객체를 지정된 위치에 소환합니다. 해당 위치로부터 소리가 재생되어 널리 퍼집니다.
 - APlayerController::ClientStartCameraShake()
-  - TSubclassOf<UCameraShakeBase> 객체에 저장된 값을 토대로 카메라의 움직임 효과를 실행합니다.
+  - UCameraShakeBase 객체에 저장된 값을 토대로 카메라의 움직임 효과를 실행합니다.
   - TSubclassOf로 에디터 상에서 지정가능한 클래스의 범위를 한정합니다.
   - UE 5.0 이하의 Matinee Camera Shake 클래스가 UE 5.1 이후에서는 Legacy Camera Shake로 변경되었습니다.
 ```cpp
