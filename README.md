@@ -76,7 +76,7 @@ GetOwner()->SetActorLocation(NewLocation);
 - 완전한 외부 빛의 차단을 위해 던전 외부에 추가적인 벽 메시들을 배치했습니다.
 
 # ToonTanks
-- Thirdperson shooter
+- Quarter view shooting
 - Cartoon style graphic
 - Avoid tower's attack and kill them all!
 
@@ -252,6 +252,97 @@ void ABasePawn::HandleDestruction()
 	if (DeathCameraShakeClass)
 	{
 		GetWorld()->GetFirstPlayerController()->ClientStartCameraShake(DeathCameraShakeClass);
+	}
+}
+```
+
+# SimpleShooter
+- Thirdperson shooter
+- Find and eliminate enemies in the base in Antarctica!
+## Features
+### Enhanced Input with C++
+- 4개의 InputAction을 1개의 InputMappingContext에 매핑한 후 캐릭터와 연결하여 움직임을 제어합니다.
+- UInputComponent::BindAction으로 입력시 호출될 콜백 함수를 연결합니다.
+- 걷기 기능은 점프와 동일하게 두 함수를 선언하되 bool 변수를 두어 Move 함수 내에서 제어되도록 하여 구현하였습니다.
+```cpp
+// .h
+UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enhanced Input")
+class UInputMappingContext* InputMapping;
+
+UPROPERTY(EditDefaultsOnly, Category = "Enhanced Input")
+class UInputAction* MoveAction;
+
+UPROPERTY(EditDefaultsOnly, Category = "Enhanced Input")
+UInputAction* LookAction;
+
+UPROPERTY(EditDefaultsOnly, Category = "Enhanced Input")
+UInputAction* JumpAction;
+
+UPROPERTY(EditDefaultsOnly, Category = "Enhanced Input")
+UInputAction* WalkAction;
+
+bool bWalking = false;
+
+void Move(const struct FInputActionValue& Value);
+void Look(const FInputActionValue& Value);
+void Walk() { bWalking = true; }
+void StopWalking() { bWalking = false; }
+
+// .cpp
+void AShooterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	
+	// Get the player controller
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController)
+	{
+		// Get the local player subsystem
+		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
+		// Clear out existing mapping, and add our mapping
+		if (Subsystem)
+		{
+			Subsystem->AddMappingContext(InputMapping, 0);
+		}
+	}
+
+	UEnhancedInputComponent* PlayerEnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent);
+	if (PlayerEnhancedInputComponent)
+	{
+		PlayerEnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AShooterCharacter::Move);
+		PlayerEnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AShooterCharacter::Look);
+
+		PlayerEnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+		PlayerEnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
+
+		PlayerEnhancedInputComponent->BindAction(WalkAction, ETriggerEvent::Started, this, &AShooterCharacter::Walk);
+		PlayerEnhancedInputComponent->BindAction(WalkAction, ETriggerEvent::Completed, this, &AShooterCharacter::StopWalking);
+	}
+}
+
+void AShooterCharacter::Move(const FInputActionValue& Value)
+{
+	if (Controller)
+	{
+		FVector2D MovementVector = Value.Get<FVector2D>();
+		if (bWalking)
+		{
+			MovementVector *= 0.5f;
+		}
+
+		AddMovementInput(GetActorForwardVector(), MovementVector.Y);
+		AddMovementInput(GetActorRightVector(), MovementVector.X);
+	}
+}
+
+void AShooterCharacter::Look(const FInputActionValue& Value)
+{
+	if (Controller)
+	{
+		FVector2D LookAxisVector = Value.Get<FVector2D>();
+
+		AddControllerYawInput(LookAxisVector.X);
+		AddControllerPitchInput(LookAxisVector.Y);
 	}
 }
 ```
