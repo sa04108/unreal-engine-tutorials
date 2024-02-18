@@ -259,11 +259,14 @@ void ABasePawn::HandleDestruction()
 # SimpleShooter
 - Thirdperson shooter
 - Find and eliminate enemies in the base in Antarctica!
+
+<img src="readme-images/shooter_1.png" width="400" height="300"></img>
+
 ## Features
 ### Enhanced Input with C++
 - 4개의 InputAction을 1개의 InputMappingContext에 매핑한 후 캐릭터와 연결하여 움직임을 제어합니다.
 - UInputComponent::BindAction으로 입력시 호출될 콜백 함수를 연결합니다.
-- 걷기 기능은 점프와 동일하게 두 함수를 선언하되 bool 변수를 두어 Move 함수 내에서 제어되도록 하여 구현하였습니다.
+- 걷기 기능은 점프와 동일하게 두 함수를 선언하되 bool 변수를 두어 Move 함수 내에서 제어되도록 하여 구현합니다.
 ```cpp
 // .h
 UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Enhanced Input")
@@ -344,6 +347,114 @@ void AShooterCharacter::Look(const FInputActionValue& Value)
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
+}
+```
+
+### Shooting
+- 총 객체에서 발사를 제어합니다.
+- LineTraceSingleByChannel()로 특정 콜리전 채널에 부합하는 대상에게 Line Trace합니다. 대상은 캐릭터 혹은 벽과 같은 액터일 수 있습니다.
+- ECollisionQueryParams로 충돌시키지 않을 액터를 설정하여 총알이 방해받지 않고 목표에 충돌될 수 있도록 합니다.
+```cpp
+bool AGun::GunTrace(FHitResult& Hit, FVector& ShotDirection)
+{
+	AController* OwnerController = GetOwnerController();
+	if (OwnerController == nullptr) return false;
+
+	FVector ViewLocation;
+	FRotator ViewRotator;
+	OwnerController->GetPlayerViewPoint(ViewLocation, ViewRotator);
+
+	FVector End = ViewLocation + ViewRotator.Vector() * MaxRange;
+	ShotDirection = -ViewRotator.Vector();
+
+	FCollisionQueryParams Params;
+	Params.AddIgnoredActor(this);
+	Params.AddIgnoredActor(GetOwner());
+	
+	return GetWorld()->LineTraceSingleByChannel(Hit, ViewLocation, End, ECollisionChannel::ECC_GameTraceChannel1, Params);
+}
+```
+
+### AI - Behavior Tree
+<img src="readme-images/shooter_2.png" width="400" height="300"></img>
+- Behavior Tree로 AI 캐릭터의 행동을 제어합니다.
+- Blackboard 변수를 두어 지속적으로 C++ 클래스와 상호작용하면서 AI의 상태를 변경합니다.
+- Behavior Tree에는 함수의 선언부를 두고 C++ 클래스에는 구현부를 두는 구조입니다. 이는 BTTask와 BTService를 통해 가능합니다.
+
+### AI - Radial Sight
+- 적이 플레이어를 발견할 때 원형이 아닌 부채꼴 형태의 시야를 가집니다.
+- 이를 구현하기 위해서는 FOV 개념을 정의해야 하는데, 먼저 적 캐릭터의 전방벡터와 플레이어 위치로의 벡터간의 각도를 구합니다.
+- 그 각도를 구하기 위해 벡터의 내적(노멀 벡터의 내적값은 코사인) - 아크코사인의 과정을 거칩니다.
+- 구한 각도가 FOV 각도보다 작은 경우 플레이어가 시야에 있다고 판단합니다.
+```cpp
+bool UBTService_PlayerLocationIfSeen::IsPlayerInFieldOfView(AAIController* Controller) const
+{
+    APawn *PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+    if (PlayerPawn == nullptr) return false;
+
+    FVector EnemyLocation = Controller->GetPawn()->GetActorLocation();
+    FVector PlayerLocation = PlayerPawn->GetActorLocation();
+    FVector DirectionToPlayer = (PlayerLocation - EnemyLocation).GetSafeNormal();
+
+    // Calculate the angle between the enemy's forward vector and the direction to the player
+    FVector ForwardVector = Controller->GetPawn()->GetActorForwardVector();
+    float DotProduct = FVector::DotProduct(ForwardVector, DirectionToPlayer); // cos value
+    float Angle = FMath::Acos(DotProduct);                                    // Returns angle in radians with arccos
+    Angle = FMath::RadiansToDegrees(Angle);                                   // Convert angle to degrees
+
+    float FieldOfView = 210.f;
+
+    return Angle < FieldOfView / 2 && Controller->LineOfSightTo(PlayerPawn);
+}
+```
+
+### HUD
+<img src="readme-images/shooter_3.png" width="400" height="300"></img>
+- 체력바와 크로스헤어를 Widget Blueprint(UserWidget 클래스)로 구현합니다.
+- 체력바의 경우 Percentage에 플레이어의 체력값을 bind하여 동기화합니다. Widget의 Graph에서 체력값을 가져옵니다.
+
+### Character Animation - Blend Space
+<img src="readme-images/shooter_4.png" width="400" height="300"></img>
+- Blend Space에서 Speed와 Angle 이 두 가지 축을 사용하는 2차원 애니메이팅 공간을 만들고 각 값에 따라 이동 속도와 회전값 변경 등 Locomotion이 이루어질 수 있도록 합니다.
+
+### Character Animation - State Machine
+<img src="readme-images/shooter_5.png" width="400" height="300"></img>
+- 점프, 착지와 같은 State Machine을 만들어 캐릭터의 모션이 Input에 따라 사이클이 형성되도록 합니다.
+
+### End Game
+- 적을 모두 사살한 경우 플레이어의 승리, 만약 그 전에 플레이어가 사망하면 패배합니다.
+- 이를 위해 피아 구분이 없는 Controller 클래스의 GameHasEnded() 함수를 구현합니다. Controller는 PlayerController와 AIController 클래스 모두 상속받습니다.
+- 승패 여부에 따라 모든 컨트롤러의 GameHasEnded() 함수를 호출합니다. 이를 위해 TActorRange<AController> 템플릿 레인지를 활용하여 월드에 존재하는 모든 컨트롤러를 가져옵니다.
+- 플레이어의 GameHasEnded에서는 승리 또는 패배에 따른 HUD를 출력합니다.
+```cpp
+void AKillEmAllGameMode::PawnKilled(APawn* PawnKilled)
+{
+    Super::PawnKilled(PawnKilled);
+
+    APlayerController* PlayerController = Cast<APlayerController>(PawnKilled->GetController());
+    if (PlayerController)
+    {
+        EndGame(false);
+    }
+
+    for (AShooterAIController* Controller : TActorRange<AShooterAIController>(GetWorld()))
+    {
+        if (!Controller->IsDead())
+        {
+            return;
+        }
+    }
+
+    EndGame(true);
+}
+
+void AKillEmAllGameMode::EndGame(bool bIsPlayerWinner)
+{
+    for (AController* Controller : TActorRange<AController>(GetWorld()))
+    {
+        bool bIsWinner = Controller->IsPlayerController() == bIsPlayerWinner;
+        Controller->GameHasEnded(Controller->GetPawn(), bIsWinner);
+    }
 }
 ```
 
