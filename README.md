@@ -260,7 +260,7 @@ void ABasePawn::HandleDestruction()
 - Thirdperson shooter
 - Find and eliminate enemies in the base in Antarctica!
 
-<img src="readme-images/shooter_1.png" width="400" height="300"></img>
+<img src="readme-images/shooter_1.jpg" width="400" height="300"></img>
 
 ## Features
 ### Enhanced Input with C++
@@ -376,7 +376,7 @@ bool AGun::GunTrace(FHitResult& Hit, FVector& ShotDirection)
 ```
 
 ### AI - Behavior Tree
-<img src="readme-images/shooter_2.png" width="400" height="300"></img>
+<img src="readme-images/shooter_2.jpg" width="400" height="300"></img>
 - Behavior Tree로 AI 캐릭터의 행동을 제어합니다.
 - Blackboard 변수를 두어 지속적으로 C++ 클래스와 상호작용하면서 AI의 상태를 변경합니다.
 - Behavior Tree에는 함수의 선언부를 두고 C++ 클래스에는 구현부를 두는 구조입니다. 이는 BTTask와 BTService를 통해 가능합니다.
@@ -409,16 +409,16 @@ bool UBTService_PlayerLocationIfSeen::IsPlayerInFieldOfView(AAIController* Contr
 ```
 
 ### HUD
-<img src="readme-images/shooter_3.png" width="400" height="300"></img>
+<img src="readme-images/shooter_3.jpg" width="400" height="300"></img>
 - 체력바와 크로스헤어를 Widget Blueprint(UserWidget 클래스)로 구현합니다.
 - 체력바의 경우 Percentage에 플레이어의 체력값을 bind하여 동기화합니다. Widget의 Graph에서 체력값을 가져옵니다.
 
 ### Character Animation - Blend Space
-<img src="readme-images/shooter_4.png" width="400" height="300"></img>
+<img src="readme-images/shooter_4.jpg" width="400" height="300"></img>
 - Blend Space에서 Speed와 Angle 이 두 가지 축을 사용하는 2차원 애니메이팅 공간을 만들고 각 값에 따라 이동 속도와 회전값 변경 등 Locomotion이 이루어질 수 있도록 합니다.
 
 ### Character Animation - State Machine
-<img src="readme-images/shooter_5.png" width="400" height="300"></img>
+<img src="readme-images/shooter_5.jpg" width="400" height="300"></img>
 - 점프, 착지와 같은 State Machine을 만들어 캐릭터의 모션이 Input에 따라 사이클이 형성되도록 합니다.
 
 ### End Game
